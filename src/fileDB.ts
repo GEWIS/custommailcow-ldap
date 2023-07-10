@@ -1,4 +1,4 @@
-﻿import {ConnectionOptions, Repository, createConnection, getConnection, Not, Column} from 'typeorm';
+﻿import {ConnectionOptions, Repository, createConnection, getConnection, Not} from 'typeorm';
 import 'reflect-metadata'
 import {Users} from './entities/User'
 import fs from "fs";
@@ -192,8 +192,8 @@ export async function updatePermissionsDB(email: string, newUsers: string[], per
     })
 
     // Get existing permissions from mailbox
-    if(!newUsers) newUsers = [];
-    if(!Array.isArray(newUsers)) newUsers = [newUsers];
+    if (!newUsers) newUsers = [];
+    if (!Array.isArray(newUsers)) newUsers = [newUsers];
 
     const removedUsers = !user ? [] : user[permission].split(';');
 
