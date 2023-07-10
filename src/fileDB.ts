@@ -1,17 +1,17 @@
-﻿import {ConnectionOptions, Repository, createConnection, getConnection, Not} from 'typeorm';
+﻿import {Repository, Not, DataSource} from 'typeorm';
 import 'reflect-metadata'
 import {Users} from './entities/User'
 import fs from "fs";
 import {MailcowPermissions, ACLResults, ActiveUserSetting, UserDataDB, SOBList} from "./types";
 
 // Connection options for the DB
-const options: ConnectionOptions = {
+const dataSource = new DataSource({
     type: "sqlite",
     database: './db/ldap-mailcow.sqlite3',
     entities: [
         Users
     ],
-}
+})
 
 let userRepository: Repository<Users>;
 let sessionTime: number = new Date().getTime();
@@ -26,9 +26,8 @@ export function setSessionTime(): void {
 export async function initializeDB(): Promise<void> {
     if (!fs.existsSync('./db/ldap-mailcow.sqlite3'))
         fs.writeFileSync('./db/ldap-mailcow.sqlite3', '')
-    await createConnection(options).catch((error: never) => console.log(error));
-    await getConnection().synchronize()
-    userRepository = getConnection().getRepository(Users)
+    dataSource.initialize().catch((error: never) => console.log(error));
+    userRepository = dataSource.getRepository(Users);
 }
 
 /**
