@@ -9,7 +9,10 @@ import {
     resetUserChanged,
     setSessionTime, updatePermissionsDB,
     updateSOBDB,
-} from "./filedb";
+} from "./fileDB";
+// import {
+//     initializeDB as mailcowDBinit
+// } from "./mailcowDB"
 import {replaceInFile, ReplaceInFileConfig} from 'replace-in-file'
 import fs, {PathLike} from 'fs'
 import path from "path";
@@ -78,6 +81,7 @@ async function initializeSync(): Promise<void> {
     // Start 'connection' with database
     console.log("Initializing")
     await initializeDB()
+    // await mailcowDBinit()
     await initializeMailcowAPI(config)
     await initializeDovecotAPI(config)
 
