@@ -249,6 +249,8 @@ async function syncUserPermissions(entry: LDAPResults, type: MailcowPermissions)
         attributes: ['memberFlattened']
     });
 
+    console.log(entry['mail'])
+
     // Update all the permissions
     await updatePermissionsDB(entry['mail'],
         (permissionResults['searchEntries'][0] as unknown as LDAPResults)['memberFlattened'], type)

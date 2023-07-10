@@ -95,7 +95,6 @@ export async function addUserAPI(email: string, name: string, active: number, qu
  * @param email - email of user to be edited
  * @param options - options to be edited
  */
-// Todo add send from ACLs
 export async function editUserAPI(email: string, options?: { active?: number, name?: string, sender_acl?: string[] }): Promise<void> {
     const mailboxData: MailboxEditRequest = {
         'items': [email],

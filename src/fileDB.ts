@@ -204,5 +204,7 @@ export async function updatePermissionsDB(email: string, newUsers: string[], per
     user[permission] = newUsers.join(';');
     await userRepository.update(user.email, user)
 
+    console.log(updatedUsers)
+
     return updatedUsers
 }
