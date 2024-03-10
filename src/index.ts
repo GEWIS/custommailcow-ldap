@@ -94,7 +94,7 @@ async function getActiveDirectoryMails(users: string[], skipUser: ActiveDirector
 
     // We do not want to set permissions for owner of the mailbox
     // There should only be one resulting entry
-    if (activeDirectoryUser[0].mail != skipUser.mail) activeDirectoryMails.push(activeDirectoryUser[0].mail);
+    if (activeDirectoryUser[0] !== undefined && activeDirectoryUser[0].mail != skipUser.mail) activeDirectoryMails.push(activeDirectoryUser[0].mail);
   }
   return activeDirectoryMails;
 }
