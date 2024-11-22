@@ -18,7 +18,7 @@ import {
   createMailcowUser,
   getMailcowUser,
   editMailcowUser,
-  initializeMailcowAPI,
+  initializeMailcowAPI, getAllAliases,
 } from './mailcowAPI';
 import {
   ChangedUsers,
@@ -36,6 +36,7 @@ import {
 import {
   initializeMailcowDatabase,
 } from './mailcowDatabase';
+import {AliasDictionary, getAliasDictionary} from "./aliasSync";
 
 export const containerConfig: ContainerConfig = {
   LDAP_URI: '',
@@ -59,6 +60,7 @@ const consoleLogLine: string = '-'.repeat(40);
 
 let activeDirectoryConnector: Client;
 let activeDirectoryUsers: ActiveDirectoryUser[] = [];
+let aliasDictionary: AliasDictionary|null = null
 
 
 /**
@@ -153,7 +155,10 @@ async function synchronizeUserSOB(activeDirectoryGroup: ActiveDirectoryUser): Pr
         scope: 'sub',
         attributes: ['mail'],
       })).searchEntries as unknown as ActiveDirectoryUser[];
-      await editLocalUserPermissions(memberResults[0].mail, activeDirectoryGroup.mail);
+      if (aliasDictionary === null) {
+        throw new Error('aliasDictionary does not exist yet')
+      }
+      await editLocalUserPermissions(memberResults[0].mail, [activeDirectoryGroup.mail, ...(aliasDictionary.emails[activeDirectoryGroup.mail]?.aliases ?? [])]);
     }
   }
 
@@ -524,6 +529,10 @@ async function initializeSync(): Promise<void> {
   await synchronizeUsersWithActiveDirectory();
 
   console.log(consoleLogLine + '\n SYNCING ALL PERMISSIONS \n' + consoleLogLine);
+  // Get the alias dictionary if it does not yes exist, or if it is older than one hour
+  if (aliasDictionary === null || ((Date.now() - aliasDictionary.last_update_time.getTime()) / 3600000) > 1) {
+    aliasDictionary = await getAliasDictionary();
+  }
   await synchronizePermissionsWithActiveDirectory();
 }
 

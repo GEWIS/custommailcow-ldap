@@ -140,9 +140,9 @@ export async function editLocalUserDisplayName(mail: string, displayName: string
 /**
  * Update user's SOB in the local database
  * @param mail - email of user
- * @param SOBEmail - email to check SOB for
+ * @param SOBEmail - emails to check SOB for
  */
-export async function editLocalUserPermissions(mail: string, SOBEmail: string): Promise<void> {
+export async function editLocalUserPermissions(mail: string, SOBEmail: string[]): Promise<void> {
   const user: Users = await localUserRepository.findOneOrFail({
     where: {
       email: mail,
@@ -152,12 +152,14 @@ export async function editLocalUserPermissions(mail: string, SOBEmail: string): 
   // Check if permissions for ACL are set
   const SOB: string[] = !user.newMailPermSOB ? [] : user.newMailPermSOB.split(';');
 
-  // Check if sob mail is in list (it should not be, but checking does not hurt)
-  if (SOB.indexOf(SOBEmail) === -1) {
-    SOB.push(SOBEmail);
-    user.newMailPermSOB = SOB.join(';');
-    await localUserRepository.update(user.email, user);
-  }
+  // push all sob's to the user if it does not have them yet
+  SOBEmail.forEach((mail) => {
+    if (!SOB.includes(mail)) {
+      SOB.push(mail);
+    }
+  });
+  user.newMailPermSOB = SOB.join(';');
+  await localUserRepository.update(user.email, user);
 }
 
 
