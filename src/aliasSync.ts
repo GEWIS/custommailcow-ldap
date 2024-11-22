@@ -1,5 +1,4 @@
 import { getAllAliases } from './mailcowAPI';
-
 /**
  * The alias_dict is an object that maps every email to all its aliases
  * This is done in the form of:
@@ -9,7 +8,7 @@ import { getAllAliases } from './mailcowAPI';
  */
 export type AliasDictionary = {
   emails: {
-    [key:string] : {
+    [key: string]: {
       aliases: string[]
     },
   }

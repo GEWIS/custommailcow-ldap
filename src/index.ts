@@ -67,7 +67,7 @@ let aliasDictionary: AliasDictionary | null = null;
  * Search active directory users on mail and return display name
  * @param mail - mail to search for in Active Directory
  */
-export async function getActiveDirectoryDisplayName(mail: string) : Promise<string> {
+export async function getActiveDirectoryDisplayName(mail: string): Promise<string> {
   const activeDirectoryUser: ActiveDirectoryUser[] = (await activeDirectoryConnector.search(containerConfig.LDAP_BASE_DN, {
     scope: 'sub',
     filter: `(&(objectClass=user)(objectCategory=person)(mail=${mail})`,
