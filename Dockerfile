@@ -6,10 +6,11 @@ ENV NODE_ENV=development
 WORKDIR /usr/src/custommailcow-ldap
 
 # Copy over the package and package-lock
-COPY package*.json .
+COPY package.json .
+COPY yarn.lock .
 
 # Install dependencies
-RUN npm ci
+RUN yarn install
 
 # Copy over the tsconfig
 COPY tsconfig.json .
@@ -31,7 +32,7 @@ WORKDIR /app
 COPY package*.json .
 
 # Install production dependencies
-RUN npm install --only=production
+RUN yarn install --production
 
 # Copy over the template data
 COPY templates /app/templates

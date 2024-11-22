@@ -1,6 +1,7 @@
 ﻿import MailCowClient from 'ts-mailcow-api';
 import {
   ACLEditRequest,
+  Alias,
   MailboxEditRequest,
   MailboxPostRequest,
 } from 'ts-mailcow-api/src/types';
@@ -120,4 +121,8 @@ export async function getMailcowUser(mail: string): Promise<MailcowUserData> {
   }
 
   return userData;
+}
+
+export function getAllAliases(): Promise<Alias[]> {
+  return mailcowClient.aliases.get('all');
 }

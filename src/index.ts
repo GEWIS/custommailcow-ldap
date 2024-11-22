@@ -11,7 +11,6 @@ import {
 } from './localUserDatabase';
 import {
   replaceInFile,
-  ReplaceInFileConfig,
 } from 'replace-in-file';
 import fs, { PathLike } from 'fs';
 import path from 'path';
@@ -35,9 +34,9 @@ import {
   setDovecotPermissions,
 } from './dovecotAPI';
 import {
-  editUserSignatures,
   initializeMailcowDatabase,
 } from './mailcowDatabase';
+import { AliasDictionary, getAliasDictionary } from './aliasSync';
 
 export const containerConfig: ContainerConfig = {
   LDAP_URI: '',
@@ -61,6 +60,7 @@ const consoleLogLine: string = '-'.repeat(40);
 
 let activeDirectoryConnector: Client;
 let activeDirectoryUsers: ActiveDirectoryUser[] = [];
+let aliasDictionary: AliasDictionary | null = null;
 
 
 /**
@@ -90,11 +90,12 @@ async function getActiveDirectoryMails(users: string[], skipUser: ActiveDirector
     const activeDirectoryUser: ActiveDirectoryUser[] = (await activeDirectoryConnector.search(user, {
       scope: 'sub',
       attributes: ['mail'],
-    })) as unknown as ActiveDirectoryUser[];
+    })).searchEntries as unknown as ActiveDirectoryUser[];
 
     // We do not want to set permissions for owner of the mailbox
     // There should only be one resulting entry
     if (activeDirectoryUser[0].mail != skipUser.mail) activeDirectoryMails.push(activeDirectoryUser[0].mail);
+    await new Promise(resolve => setTimeout(resolve, 10));
   }
   return activeDirectoryMails;
 }
@@ -141,6 +142,7 @@ async function synchronizeUserSOB(activeDirectoryGroup: ActiveDirectoryUser): Pr
     scope: 'sub',
     attributes: ['memberFlattened'],
   })).searchEntries) as unknown as ActiveDirectoryUser[];
+  console.error('SOB', activeDirectoryPermissionGroup);
 
   // Construct list in database with DN of all committees they are in
   // Get existing list of committees, add new DN as string
@@ -153,7 +155,10 @@ async function synchronizeUserSOB(activeDirectoryGroup: ActiveDirectoryUser): Pr
         scope: 'sub',
         attributes: ['mail'],
       })).searchEntries as unknown as ActiveDirectoryUser[];
-      await editLocalUserPermissions(memberResults[0].mail, activeDirectoryGroup.mail);
+      if (aliasDictionary === null) {
+        throw new Error('aliasDictionary does not exist yet');
+      }
+      await editLocalUserPermissions(memberResults[0].mail, [activeDirectoryGroup.mail, ...(aliasDictionary.emails[activeDirectoryGroup.mail]?.aliases ?? [])]);
     }
   }
 
@@ -161,7 +166,7 @@ async function synchronizeUserSOB(activeDirectoryGroup: ActiveDirectoryUser): Pr
   // Singular entries are possible, so turn them into an array
   // if (!Array.isArray(activeDirectoryPermissionGroup.memberFlattened))
   //   activeDirectoryPermissionGroup.memberFlattened = [activeDirectoryPermissionGroup.memberFlattened];
-
+  //
   // // All users are given as DN, so we have to get their mail first
   // for (const activeDirectoryUserDN of activeDirectoryPermissionGroup.memberFlattened) {
   //   const activeDirectoryUserMail: ActiveDirectoryUser = ((await activeDirectoryConnector.search(activeDirectoryUserDN, {
@@ -262,7 +267,7 @@ function applyConfig(configPath: PathLike, configData: string): boolean {
  * Replace all variables in template file with new configuration
  */
 async function readPassDBConfig(): Promise<string> {
-  const options: ReplaceInFileConfig = {
+  await replaceInFile({
     files: './templates/dovecot/ldap/passdb.conf',
     from: ['$ldap_gc_uri', '$ldap_domain', '$ldap_base_dn', '$ldap_bind_dn', '$ldap_bind_dn_password'],
     to: [
@@ -272,8 +277,7 @@ async function readPassDBConfig(): Promise<string> {
       containerConfig.LDAP_BIND_DN,
       containerConfig.LDAP_BIND_DN_PASSWORD,
     ],
-  };
-  await replaceInFile(options);
+  });
   return fs.readFileSync('./templates/dovecot/ldap/passdb.conf', 'utf8');
 }
 
@@ -282,14 +286,13 @@ async function readPassDBConfig(): Promise<string> {
  * Replace all variables in template file with new configuration
  */
 async function readDovecotExtraConfig(): Promise<string> {
-  const options: ReplaceInFileConfig = {
+  await replaceInFile({
     files: './templates/dovecot/extra.conf',
     from: ['$doveadm_api_key'],
     to: [
       containerConfig.DOVEADM_API_KEY,
     ],
-  };
-  await replaceInFile(options);
+  });
   return fs.readFileSync('./templates/dovecot/extra.conf', 'utf8');
 }
 
@@ -298,7 +301,8 @@ async function readDovecotExtraConfig(): Promise<string> {
  * Replace all variables in template file with new configuration
  */
 async function readPListLDAP(): Promise<string> {
-  const options: ReplaceInFileConfig = {
+  console.log('Adjust plist_ldap template file');
+  await replaceInFile({
     files: './templates/sogo/plist_ldap',
     from: ['$ldap_uri', '$ldap_base_dn', '$ldap_bind_dn', '$ldap_bind_dn_password', '$sogo_ldap_filter'],
     to: [
@@ -308,9 +312,7 @@ async function readPListLDAP(): Promise<string> {
       containerConfig.LDAP_BIND_DN_PASSWORD,
       containerConfig.SOGO_LDAP_FILTER,
     ],
-  };
-  console.log('Adjust plist_ldap template file');
-  await replaceInFile(options);
+  });
   return fs.readFileSync('./templates/sogo/plist_ldap', 'utf8');
 }
 
@@ -336,6 +338,7 @@ async function getUserDataFromActiveDirectory(): Promise<void> {
   }
   console.log(retryCount, maxRetryCount);
   if (retryCount === maxRetryCount) throw new Error('Ran into an issue when getting users from Active Directory.');
+  console.error(activeDirectoryUsers);
   console.log('Successfully got all users from Active Directory. \n\n');
 }
 
@@ -357,7 +360,7 @@ async function synchronizeUsersWithActiveDirectory(): Promise<void> {
       const mailcowUser: MailcowUserData = await getMailcowUser(mail);
 
       // console.log('start checking local user');
-      
+
       if (!localUser.exists) {
         console.log(`Adding local user ${mail} (active: ${isActive})`);
         await createLocalUser(mail, displayName, isActive);
@@ -526,10 +529,14 @@ async function initializeSync(): Promise<void> {
   await synchronizeUsersWithActiveDirectory();
 
   console.log(consoleLogLine + '\n SYNCING ALL PERMISSIONS \n' + consoleLogLine);
+  // Get the alias dictionary if it does not yes exist, or if it is older than one hour
+  if (aliasDictionary === null || ((Date.now() - aliasDictionary.last_update_time.getTime()) / 3600000) > 1) {
+    aliasDictionary = await getAliasDictionary();
+  }
   await synchronizePermissionsWithActiveDirectory();
 }
 
 /**
  * Start sync
  */
-initializeSync().then(() => console.log('Finished!'));
+void initializeSync().then(() => console.log('Finished!'));
