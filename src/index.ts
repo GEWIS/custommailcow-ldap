@@ -18,7 +18,7 @@ import {
   createMailcowUser,
   getMailcowUser,
   editMailcowUser,
-  initializeMailcowAPI, getAllAliases,
+  initializeMailcowAPI,
 } from './mailcowAPI';
 import {
   ChangedUsers,
@@ -36,7 +36,7 @@ import {
 import {
   initializeMailcowDatabase,
 } from './mailcowDatabase';
-import {AliasDictionary, getAliasDictionary} from "./aliasSync";
+import { AliasDictionary, getAliasDictionary } from './aliasSync';
 
 export const containerConfig: ContainerConfig = {
   LDAP_URI: '',
@@ -60,7 +60,7 @@ const consoleLogLine: string = '-'.repeat(40);
 
 let activeDirectoryConnector: Client;
 let activeDirectoryUsers: ActiveDirectoryUser[] = [];
-let aliasDictionary: AliasDictionary|null = null
+let aliasDictionary: AliasDictionary | null = null;
 
 
 /**
@@ -156,7 +156,7 @@ async function synchronizeUserSOB(activeDirectoryGroup: ActiveDirectoryUser): Pr
         attributes: ['mail'],
       })).searchEntries as unknown as ActiveDirectoryUser[];
       if (aliasDictionary === null) {
-        throw new Error('aliasDictionary does not exist yet')
+        throw new Error('aliasDictionary does not exist yet');
       }
       await editLocalUserPermissions(memberResults[0].mail, [activeDirectoryGroup.mail, ...(aliasDictionary.emails[activeDirectoryGroup.mail]?.aliases ?? [])]);
     }

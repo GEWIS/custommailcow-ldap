@@ -1,4 +1,4 @@
-import {getAllAliases} from "./mailcowAPI";
+import { getAllAliases } from './mailcowAPI';
 
 /**
  * The alias_dict is an object that maps every email to all its aliases
@@ -8,30 +8,30 @@ import {getAllAliases} from "./mailcowAPI";
  * }
  */
 export type AliasDictionary = {
-    emails: {
-        [key:string] : {
-            aliases: string[]
-        },
-    }
-    last_update_time: Date
-}
+  emails: {
+    [key:string] : {
+      aliases: string[]
+    },
+  }
+  last_update_time: Date
+};
 
 export async function getAliasDictionary(): Promise<AliasDictionary> {
-    const aliases = await getAllAliases()
+  const aliases = await getAllAliases();
 
-    let aliasDict: AliasDictionary = {
-        emails: {},
-        last_update_time: new Date()
+  let aliasDict: AliasDictionary = {
+    emails: {},
+    last_update_time: new Date(),
+  };
+
+  aliases.forEach(alias => {
+    if (aliasDict.emails[alias.goto]) {
+      aliasDict.emails[alias.goto].aliases.push(alias.address);
+    } else {
+      aliasDict.emails[alias.goto] = {
+        aliases: [alias.address],
+      };
     }
-
-    aliases.forEach(alias => {
-        if (aliasDict.emails[alias.goto]) {
-            aliasDict.emails[alias.goto].aliases.push(alias.address)
-        } else {
-            aliasDict.emails[alias.goto] = {
-                aliases: [alias.address],
-            }
-        }
-    })
-    return aliasDict;
+  });
+  return aliasDict;
 }

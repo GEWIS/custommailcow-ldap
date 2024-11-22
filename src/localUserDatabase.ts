@@ -153,9 +153,9 @@ export async function editLocalUserPermissions(mail: string, SOBEmail: string[])
   const SOB: string[] = !user.newMailPermSOB ? [] : user.newMailPermSOB.split(';');
 
   // push all sob's to the user if it does not have them yet
-  SOBEmail.forEach((mail) => {
-    if (!SOB.includes(mail)) {
-      SOB.push(mail);
+  SOBEmail.forEach((sob) => {
+    if (!SOB.includes(sob)) {
+      SOB.push(sob);
     }
   });
   user.newMailPermSOB = SOB.join(';');
