@@ -9,21 +9,21 @@ import { getAllAliases } from './mailcowAPI';
 export type AliasDictionary = {
   emails: {
     [key: string]: {
-      aliases: string[]
-    },
-  }
-  last_update_time: Date
+      aliases: string[];
+    };
+  };
+  last_update_time: Date;
 };
 
 export async function getAliasDictionary(): Promise<AliasDictionary> {
   const aliases = await getAllAliases();
 
-  let aliasDict: AliasDictionary = {
+  const aliasDict: AliasDictionary = {
     emails: {},
     last_update_time: new Date(),
   };
 
-  aliases.forEach(alias => {
+  aliases.forEach((alias) => {
     if (aliasDict.emails[alias.goto]) {
       aliasDict.emails[alias.goto].aliases.push(alias.address);
     } else {

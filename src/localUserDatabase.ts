@@ -1,6 +1,6 @@
-﻿import { Repository, Not, DataSource } from 'typeorm';
+﻿import fs from 'fs';
+import { Repository, Not, DataSource } from 'typeorm';
 import { Users } from './entities/User';
-import fs from 'fs';
 import { ActiveDirectoryPermissions, ChangedUsers, ActiveUserSetting, LocalUserData } from './types';
 import { sessionTime } from './index';
 
@@ -11,15 +11,12 @@ let dataSource: DataSource;
  * Initialize database connection. Setup database if it does not yet exist
  */
 export async function initializeLocalUserDatabase(): Promise<void> {
-  if (!fs.existsSync('./db/ldap-mailcow.sqlite3'))
-    fs.writeFileSync('./db/ldap-mailcow.sqlite3', '');
+  if (!fs.existsSync('./db/ldap-mailcow.sqlite3')) fs.writeFileSync('./db/ldap-mailcow.sqlite3', '');
 
   dataSource = new DataSource({
     type: 'sqlite',
     database: './db/ldap-mailcow.sqlite3',
-    entities: [
-      Users,
-    ],
+    entities: [Users],
     synchronize: true,
   });
 
@@ -27,20 +24,20 @@ export async function initializeLocalUserDatabase(): Promise<void> {
   localUserRepository = dataSource.getRepository(Users);
 }
 
-
 /**
  * Get all users from DB that have not been checked in current session but are active
  */
 export async function getUncheckedLocalActiveUsers(): Promise<Users[]> {
-  return Promise.resolve(localUserRepository.find({
-    select: ['email'],
-    where: {
-      lastSeen: Not(sessionTime),
-      active: Not(0),
-    },
-  }));
+  return Promise.resolve(
+    localUserRepository.find({
+      select: ['email'],
+      where: {
+        lastSeen: Not(sessionTime),
+        active: Not(0),
+      },
+    }),
+  );
 }
-
 
 /**
  * Add a user to the local database
@@ -68,7 +65,6 @@ export async function createLocalUser(mail: string, displayName: string, active:
   });
   await localUserRepository.save(user);
 }
-
 
 /**
  * Get a user data from database
@@ -102,14 +98,17 @@ export async function getLocalUser(mail: string): Promise<LocalUserData> {
   }
 }
 
-
 /**
  * Change user activity status in the local database
  * @param mail - email of user
  * @param active - activity of user
  * @param inactiveCount - number of times user has been inactive
  */
-export async function updateLocalUserActivity(mail: string, active: ActiveUserSetting, inactiveCount: number): Promise<void> {
+export async function updateLocalUserActivity(
+  mail: string,
+  active: ActiveUserSetting,
+  inactiveCount: number,
+): Promise<void> {
   const user: Users = await localUserRepository.findOneOrFail({
     where: {
       email: mail,
@@ -119,7 +118,6 @@ export async function updateLocalUserActivity(mail: string, active: ActiveUserSe
   user.inactiveCount = inactiveCount;
   await localUserRepository.update(user.email, user);
 }
-
 
 /**
  * Change user display name in the local database
@@ -135,7 +133,6 @@ export async function editLocalUserDisplayName(mail: string, displayName: string
   user.displayName = displayName;
   await localUserRepository.update(user.email, user);
 }
-
 
 /**
  * Update user's SOB in the local database
@@ -162,7 +159,6 @@ export async function editLocalUserPermissions(mail: string, SOBEmail: string[])
   await localUserRepository.update(user.email, user);
 }
 
-
 /**
  * Get all local users of which the SOB has changed in this session
  */
@@ -183,14 +179,17 @@ export async function getUpdateSOBLocalUsers(): Promise<Users[]> {
   return changedUsers;
 }
 
-
 /**
  * Update local user permissions
  * @param mail - email of user
  * @param newUsers - acl to check
  * @param permission - type of permission to change
  */
-export async function updateLocalUserPermissions(mail: string, newUsers: string[], permission: ActiveDirectoryPermissions): Promise<ChangedUsers> {
+export async function updateLocalUserPermissions(
+  mail: string,
+  newUsers: string[],
+  permission: ActiveDirectoryPermissions,
+): Promise<ChangedUsers> {
   const changedUsers: ChangedUsers = {
     newUsers: [],
     removedUsers: [],
@@ -209,7 +208,9 @@ export async function updateLocalUserPermissions(mail: string, newUsers: string[
   // Filter for users, also filter empty entries
   const removedUsers: string[] = !user ? [] : user[permission].split(';');
   changedUsers.newUsers = newUsers.filter((innerUser: string) => !removedUsers.includes(innerUser) && innerUser != '');
-  changedUsers.removedUsers = removedUsers.filter((innerUser: string) => !newUsers.includes(innerUser) && innerUser != '');
+  changedUsers.removedUsers = removedUsers.filter(
+    (innerUser: string) => !newUsers.includes(innerUser) && innerUser != '',
+  );
   user[permission] = newUsers.join(';');
   await localUserRepository.update(user.email, user);
 

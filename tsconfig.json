@@ -1,40 +1,45 @@
 {
   "compilerOptions": {
-    /* Projects */
-    "composite": true,
-
-    /* Language and Environment */
+    /* Basic Options */
     "target": "es2016",
-    "lib": [
-      "es6",
-      "es2020",
-      "DOM",
-      "ES2021.String"
-    ],
+    "module": "commonjs",
+    "outDir": "dist",
+    "types": ["node"],
+    "lib": ["es6", "es2021", "DOM"],
+    "incremental": true,
+    "composite": true,
+    "declaration": true,
+    "sourceMap": true,
+
+    /* Strict Type-Checking Options */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": false,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+
+    /* Additional Checks */
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* Module Resolution Options */
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+
+    /* Experimental Options */
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
 
-    /* Modules */
-    "module": "commonjs",
-    "rootDir": "src",
-    "resolveJsonModule": true,
-
-    /* Emit */
-    "declaration": true,
-    "sourceMap": true,
-    "outDir": "dist",
-
-    /* Interop Constraints */
-    "esModuleInterop": true,                             /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
-    "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports. */
-
-    "strictPropertyInitialization": false,
-
-    /* Type Checking */
-    "strict": true,                                      /* Enable all strict type-checking options. */
-    "noImplicitAny": true
+    /* Advanced Options */
+    "forceConsistentCasingInFileNames": true,
   },
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src", "src/**/*.json"],
+  "exclude": ["node_modules"]
 }

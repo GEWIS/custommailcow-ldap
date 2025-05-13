@@ -1,16 +1,8 @@
-﻿import MailCowClient from 'ts-mailcow-api';
-import {
-  ACLEditRequest,
-  Alias,
-  MailboxEditRequest,
-  MailboxPostRequest,
-} from 'ts-mailcow-api/src/types';
-import * as https from 'https';
+﻿import * as https from 'https';
+import MailCowClient from 'ts-mailcow-api';
+import { ACLEditRequest, Alias, MailboxEditRequest, MailboxPostRequest } from 'ts-mailcow-api/src/types';
+import { Mailbox, MailboxEditAttributes } from 'ts-mailcow-api/dist/types';
 import { MailcowUserData } from './types';
-import {
-  Mailbox,
-  MailboxEditAttributes,
-} from 'ts-mailcow-api/dist/types';
 import { containerConfig } from './index';
 
 const passwordLength: number = 32;
@@ -20,15 +12,11 @@ let mailcowClient: MailCowClient;
  * Initialize database connection
  */
 export async function initializeMailcowAPI(): Promise<void> {
-  mailcowClient = new MailCowClient(
-    containerConfig.API_HOST,
-    containerConfig.API_KEY,
-    {
-      httpsAgent: new https.Agent({
-        keepAlive: true,
-      }),
-    },
-  );
+  mailcowClient = new MailCowClient(containerConfig.API_HOST, containerConfig.API_KEY, {
+    httpsAgent: new https.Agent({
+      keepAlive: true,
+    }),
+  });
 }
 
 /**
@@ -39,8 +27,7 @@ function generatePassword(length: number): string {
   let result: string = '';
   const characters: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const charactersLength: number = characters.length;
-  for (let i: number = 0; i < length; i++)
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  for (let i: number = 0; i < length; i++) result += characters.charAt(Math.floor(Math.random() * charactersLength));
   return result;
 }
 
@@ -56,24 +43,24 @@ export async function createMailcowUser(mail: string, name: string, active: numb
 
   const mailboxData: MailboxPostRequest = {
     // Active: 0 = no incoming mail/no login, 1 = allow both, 2 = custom state: allow incoming mail/no login
-    'active': active,
-    'force_pw_update': false,
-    'local_part': mail.split('@')[0],
-    'domain': mail.split('@')[1],
-    'name': name,
-    'quota': quotum,
-    'password': password,
-    'password2': password,
-    'tls_enforce_in': false,
-    'tls_enforce_out': false,
+    active: active,
+    force_pw_update: false,
+    local_part: mail.split('@')[0],
+    domain: mail.split('@')[1],
+    name: name,
+    quota: quotum,
+    password: password,
+    password2: password,
+    tls_enforce_in: false,
+    tls_enforce_out: false,
   };
 
   await mailcowClient.mailbox.create(mailboxData);
 
   const aclData: ACLEditRequest = {
-    'items': mail,
-    'attr': {
-      'user_acl': [
+    items: mail,
+    attr: {
+      user_acl: [
         'spam_alias',
         'spam_score',
         'spam_policy',
@@ -94,8 +81,8 @@ export async function createMailcowUser(mail: string, name: string, active: numb
  */
 export async function editMailcowUser(mail: string, options: Partial<MailboxEditAttributes>): Promise<void> {
   const mailboxData: MailboxEditRequest = {
-    'items': [mail],
-    'attr': options,
+    items: [mail],
+    attr: options,
   };
 
   await mailcowClient.mailbox.edit(mailboxData);
