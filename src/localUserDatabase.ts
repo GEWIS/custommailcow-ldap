@@ -168,7 +168,7 @@ export async function editLocalUserPermissions(mail: string, SOBEmail: string[])
  */
 export async function getUpdateSOBLocalUsers(): Promise<Users[]> {
   const users: Users[] = await localUserRepository.find();
-  const changedUsers : Users[] = [];
+  const changedUsers: Users[] = [];
 
   for (const user of users) {
     if (user.newMailPermSOB != user.mailPermSOB) {
@@ -207,7 +207,7 @@ export async function updateLocalUserPermissions(mail: string, newUsers: string[
   if (!Array.isArray(newUsers)) newUsers = [newUsers];
 
   // Filter for users, also filter empty entries
-  const removedUsers : string[] = !user ? [] : user[permission].split(';');
+  const removedUsers: string[] = !user ? [] : user[permission].split(';');
   changedUsers.newUsers = newUsers.filter((innerUser: string) => !removedUsers.includes(innerUser) && innerUser != '');
   changedUsers.removedUsers = removedUsers.filter((innerUser: string) => !newUsers.includes(innerUser) && innerUser != '');
   user[permission] = newUsers.join(';');
