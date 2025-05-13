@@ -9,17 +9,18 @@ WORKDIR /usr/src/custommailcow-ldap
 COPY package.json .
 COPY yarn.lock .
 
-# Install dependencies
-RUN yarn install
-
-# Copy over the tsconfig
 COPY tsconfig.json .
+COPY .yarnrc.yml /usr/src/app
 
 # Copy over the source files
 COPY src /usr/src/custommailcow-ldap/src
 
+# Install dependencies
+RUN corepack enable && \
+    yarn install --immutable
+
 # Transpile the typescript files
-RUN npx tsc
+RUN yarn build
 
 
 # Create production container.
@@ -29,10 +30,13 @@ FROM node:20-alpine AS prod
 WORKDIR /app
 
 # Copy over the package and package-lock
-COPY package*.json .
+COPY package.json .
+COPY yarn.lock .
 
 # Install production dependencies
-RUN yarn install --production
+RUN corepack enable && \
+    yarn install && \
+    yarn cache clean
 
 # Copy over the template data
 COPY templates /app/templates
