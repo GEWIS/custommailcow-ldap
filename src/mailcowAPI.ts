@@ -11,7 +11,7 @@ let mailcowClient: MailCowClient;
 /**
  * Initialize database connection
  */
-export async function initializeMailcowAPI(): Promise<void> {
+export function initializeMailcowAPI(): void {
   mailcowClient = new MailCowClient(containerConfig.API_HOST, containerConfig.API_KEY, {
     httpsAgent: new https.Agent({
       keepAlive: true,

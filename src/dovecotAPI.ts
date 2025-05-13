@@ -5,6 +5,8 @@ import { containerConfig } from './index';
 
 let dovecotClient: AxiosInstance;
 
+type DovecotMailboxResponse = [string, DovecotData[]][];
+
 /**
  * Initialize the Dovecot API
  */
@@ -26,20 +28,15 @@ export function initializeDovecotAPI(): void {
  * @param mail - email to get all subfolders from
  */
 async function getMailboxSubFolders(mail: string): Promise<string[]> {
-  const mailboxData: DovecotData[] = (
-    await dovecotClient.post('', [
-      [
-        'mailboxList',
-        {
-          user: mail,
-        },
-        `mailboxList_${mail}`,
-      ],
-    ])
-  ).data[0][1];
+  const maildata = await dovecotClient.post<DovecotMailboxResponse>('', {
+    _mailboxList_: {
+      _user: mail,
+    },
+    [`_mailboxList_${mail}_`]: '', // Use computed property syntax with square brackets
+  });
 
   const subFolders: string[] = [];
-  for (const subFolder of mailboxData) {
+  for (const subFolder of maildata.data[0][1]) {
     if (subFolder.mailbox.startsWith('Shared')) continue;
     subFolders.push(subFolder.mailbox);
   }

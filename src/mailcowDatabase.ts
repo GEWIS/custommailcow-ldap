@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Defaults, SOGoMailIdentity } from './types';
 import { SogoUserProfile } from './entities/SogoUserProfile';
 import { Users } from './entities/User';
-import { getActiveDirectoryDisplayName , containerConfig } from './index';
+import { getActiveDirectoryDisplayName, containerConfig } from './index';
 
 // Connection options for the DB
 let dataSource: DataSource;
@@ -24,7 +24,7 @@ export async function initializeMailcowDatabase(): Promise<void> {
   });
 
   await dataSource.initialize().catch((error) => {
-    console.log(error);
+    console.error(error);
   });
 
   SogoUserProfileRepository = dataSource.getRepository(SogoUserProfile);
@@ -36,7 +36,7 @@ export async function initializeMailcowDatabase(): Promise<void> {
  * @param SOBs - all SOB for which the user should get signatures
  */
 export async function editUserSignatures(user: Users, SOBs: string[]): Promise<void> {
-  console.log(`Changing signatures for ${user.email}`);
+  console.info(`Changing signatures for ${user.email}`);
 
   const userProfile: SogoUserProfile = await SogoUserProfileRepository.findOneOrFail({
     where: {
@@ -44,7 +44,7 @@ export async function editUserSignatures(user: Users, SOBs: string[]): Promise<v
     },
   });
 
-  const defaultSettings: Defaults = JSON.parse(userProfile.c_defaults);
+  const defaultSettings = JSON.parse(userProfile.c_defaults) as Defaults;
   const newIdentities: SOGoMailIdentity[] = [];
 
   // console.log(defaultSettings.SOGoMailIdentities);
@@ -56,7 +56,7 @@ export async function editUserSignatures(user: Users, SOBs: string[]): Promise<v
 
   for (const identityMail of SOBs) {
     const committeeDisplayName: string = await getActiveDirectoryDisplayName(identityMail);
-    let signature: string = (await axios.get(`https://signature.gewis.nl/${identityMail}`)).data;
+    let signature: string = (await axios.get<string>(`https://signature.gewis.nl/${identityMail}`)).data;
     signature = signature.replace('{{displayName}}', user.displayName);
     signature = signature.replaceAll('{{committeeDisplayName}}', committeeDisplayName);
     signature = signature.replaceAll('{{identityMail}}', identityMail);

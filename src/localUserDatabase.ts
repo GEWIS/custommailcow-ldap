@@ -10,7 +10,7 @@ let dataSource: DataSource;
 /**
  * Initialize database connection. Setup database if it does not yet exist
  */
-export async function initializeLocalUserDatabase(): Promise<void> {
+export function initializeLocalUserDatabase(): void {
   if (!fs.existsSync('./db/ldap-mailcow.sqlite3')) fs.writeFileSync('./db/ldap-mailcow.sqlite3', '');
 
   dataSource = new DataSource({
@@ -20,7 +20,7 @@ export async function initializeLocalUserDatabase(): Promise<void> {
     synchronize: true,
   });
 
-  dataSource.initialize().catch((error) => console.log(error));
+  dataSource.initialize().catch((error) => console.error(error));
   localUserRepository = dataSource.getRepository(Users);
 }
 
@@ -168,7 +168,7 @@ export async function getUpdateSOBLocalUsers(): Promise<Users[]> {
 
   for (const user of users) {
     if (user.newMailPermSOB != user.mailPermSOB) {
-      console.log(`SOB of ${user.email} changed from ${user.mailPermSOB} to ${user.newMailPermSOB}.`);
+      console.info(`SOB of ${user.email} changed from ${user.mailPermSOB} to ${user.newMailPermSOB}.`);
       user.mailPermSOB = user.newMailPermSOB;
       changedUsers.push(user);
     }

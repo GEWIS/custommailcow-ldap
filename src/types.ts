@@ -80,7 +80,7 @@ export enum DovecotPermissions {
 }
 
 export interface Forward {
-  forwardAddress: any[];
+  forwardAddress: unknown[];
 }
 
 export interface SOGoCalendarCategoriesColors {
@@ -120,7 +120,7 @@ export interface SOGoMailIdentity {
 export interface Vacation {
   daysBetweenResponse: number;
   autoReplyEmailAddresses: string[];
-  days: any[];
+  days: unknown[];
 }
 
 export interface Defaults {
@@ -171,7 +171,7 @@ export interface Defaults {
   SOGoAnimationMode: string;
   SOGoPasswordRecoveryQuestion: string;
   SOGoMailAddOutgoingAddresses: number;
-  AuxiliaryMailAccounts: any[];
+  AuxiliaryMailAccounts: unknown[];
   SOGoFirstDayOfWeek: number;
   SOGoLanguage: string;
   SOGoContactsCategories: string[];

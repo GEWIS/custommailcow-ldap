@@ -115,14 +115,18 @@ async function synchronizeUserACL(
     if (changedUsers.newUsers.length != 0) {
       changedUsers.newUsers = await getActiveDirectoryMails(changedUsers.newUsers, activeDirectoryUser);
 
-      console.log(`User(s) ${changedUsers.newUsers} added to ${activeDirectoryUser.mail} for ${permission}`);
+      console.info(
+        `User(s) ${changedUsers.newUsers.toString()} added to ${activeDirectoryUser.mail} for ${permission}`,
+      );
       await setDovecotPermissions(activeDirectoryUser.mail, changedUsers.newUsers, permission, false);
     }
 
     if (changedUsers.removedUsers.length != 0) {
       changedUsers.removedUsers = await getActiveDirectoryMails(changedUsers.removedUsers, activeDirectoryUser);
 
-      console.log(`User(s) ${changedUsers.removedUsers} removed from ${activeDirectoryUser.mail} for ${permission}`);
+      console.info(
+        `User(s) ${changedUsers.removedUsers.toString()} removed from ${activeDirectoryUser.mail} for ${permission}`,
+      );
       await setDovecotPermissions(activeDirectoryUser.mail, changedUsers.removedUsers, permission, true);
     }
   });
@@ -215,7 +219,7 @@ function createConfigFromEnvironment(): void {
   if ('LDAP-MAILCOW_SOGO_LDAP_FILTER' in process.env)
     containerConfig.SOGO_LDAP_FILTER = process.env['LDAP-MAILCOW_SOGO_LDAP_FILTER']!;
 
-  console.log('Successfully created config file. \n\n');
+  console.info('Successfully created config file. \n\n');
 }
 
 /**
@@ -229,23 +233,23 @@ function applyConfig(configPath: PathLike, configData: string): boolean {
     const oldConfig: string = fs.readFileSync(configPath, 'utf8');
 
     if (oldConfig.replace(/\s+/g, '*') === configData.replace(/\s+/g, '*')) {
-      console.log(`Config file ${configPath} unchanged`);
+      console.info(`Config file ${configPath.toString()} unchanged`);
       return false;
     }
 
     // Backup the data
     let backupIndex = 1;
-    let backupFile = `${configPath}.ldap_mailcow_bak.000`;
+    let backupFile = `${configPath.toString()}.ldap_mailcow_bak.000`;
     // Find free filename for backup name
     while (fs.existsSync(backupFile)) {
       let prependZeroes: string = '000' + backupIndex;
       prependZeroes = prependZeroes.substring(prependZeroes.length - 3);
-      backupFile = `${configPath}.ldap_mailcow_bak.${prependZeroes}`;
+      backupFile = `${configPath.toString()}.ldap_mailcow_bak.${prependZeroes}`;
       backupIndex++;
     }
     // Rename original config file to backup name
     fs.renameSync(configPath, backupFile);
-    console.log(`Backed up ${configPath} to ${backupFile}`);
+    console.info(`Backed up ${configPath.toString()} to ${backupFile}`);
 
     // Write new config file to config file location
     if (typeof configPath === 'string') {
@@ -253,10 +257,10 @@ function applyConfig(configPath: PathLike, configData: string): boolean {
     }
     fs.writeFileSync(configPath, configData);
   } else {
-    console.log(`A problem occured when backing up ${configPath}`);
+    console.info(`A problem occured when backing up ${configPath.toString()}`);
   }
 
-  console.log(`Saved generated config file to ${configPath}`);
+  console.info(`Saved generated config file to ${configPath.toString()}`);
   return true;
 }
 
@@ -294,7 +298,7 @@ async function readDovecotExtraConfig(): Promise<string> {
  * Replace all variables in template file with new configuration
  */
 async function readPListLDAP(): Promise<string> {
-  console.log('Adjust plist_ldap template file');
+  console.info('Adjust plist_ldap template file');
   await replaceInFile({
     files: './templates/sogo/plist_ldap',
     from: ['$ldap_uri', '$ldap_base_dn', '$ldap_bind_dn', '$ldap_bind_dn_password', '$sogo_ldap_filter'],
@@ -338,10 +342,10 @@ async function getUserDataFromActiveDirectory(): Promise<void> {
       })
     ).searchEntries as unknown as ActiveDirectoryUser[];
   }
-  console.log(retryCount, maxRetryCount);
+  console.info(retryCount, maxRetryCount);
   if (retryCount === maxRetryCount) throw new Error('Ran into an issue when getting users from Active Directory.');
   console.error(activeDirectoryUsers);
-  console.log('Successfully got all users from Active Directory. \n\n');
+  console.info('Successfully got all users from Active Directory. \n\n');
 }
 
 /**
@@ -359,17 +363,17 @@ async function synchronizeUsersWithActiveDirectory(): Promise<void> {
       const localUser: LocalUserData = await getLocalUser(mail);
       const mailcowUser: MailcowUserData = await getMailcowUser(mail);
 
-      // console.log('start checking local user');
+      // console.info('start checking local user');
 
       if (!localUser.exists) {
-        console.log(`Adding local user ${mail} (active: ${isActive})`);
+        console.info(`Adding local user ${mail} (active: ${isActive})`);
         await createLocalUser(mail, displayName, isActive);
         localUser.exists = true;
         localUser.isActive = isActive;
       }
 
       if (!mailcowUser.exists) {
-        console.log(`Adding Mailcow user ${mail} (active: ${isActive})`);
+        console.info(`Adding Mailcow user ${mail} (active: ${isActive})`);
         await createMailcowUser(mail, displayName, isActive, 256);
         mailcowUser.exists = true;
         mailcowUser.isActive = isActive;
@@ -377,25 +381,26 @@ async function synchronizeUsersWithActiveDirectory(): Promise<void> {
       }
 
       if (localUser.isActive !== isActive) {
-        console.log(`Set ${mail} to active state ${isActive} in local user database`);
+        console.info(`Set ${mail} to active state ${isActive} in local user database`);
         await updateLocalUserActivity(mail, isActive, 0);
       }
 
       if (mailcowUser.isActive !== isActive) {
-        console.log(`Set ${mail} to active state ${isActive} in Mailcow`);
+        console.info(`Set ${mail} to active state ${isActive} in Mailcow`);
         await editMailcowUser(mail, { active: isActive });
       }
 
       if (mailcowUser.displayName !== displayName) {
-        console.log(`Changed displayname for ${mail} to ${displayName} in Mailcow`);
+        console.info(`Changed displayname for ${mail} to ${displayName} in Mailcow`);
         await editMailcowUser(mail, { name: displayName });
       }
 
       if (localUser.displayName !== displayName) {
-        console.log(`Changed displayname for ${mail} to ${displayName} in local database`);
+        console.info(`Changed displayname for ${mail} to ${displayName} in local database`);
         await editLocalUserDisplayName(mail, displayName);
       }
     } catch (error) {
+      if (!(error instanceof Error)) continue;
       console.error(`Ran into an issue when syncing user ${activeDirectoryUser.mail}. \n\n ${error}`);
     }
   }
@@ -411,22 +416,23 @@ async function synchronizeUsersWithActiveDirectory(): Promise<void> {
       const maxInactiveCount: number = parseInt(containerConfig.MAX_INACTIVE_COUNT);
 
       if (inactiveCount > maxInactiveCount) {
-        console.log(`Deactivated user ${user.email} in local user database, not found in LDAP`);
+        console.info(`Deactivated user ${user.email} in local user database, not found in LDAP`);
         await updateLocalUserActivity(user.email, 0, 255);
       } else {
-        console.log(`Increased inactive count to ${inactiveCount + 1} for ${user.email}`);
+        console.info(`Increased inactive count to ${inactiveCount + 1} for ${user.email}`);
         await updateLocalUserActivity(user.email, 2, inactiveCount + 1);
       }
 
       if (mailcowUserData.isActive && localUserData.isActive === 0) {
-        console.log(`Deactivated user ${user.email} in Mailcow, not found in Active Directory`);
+        console.info(`Deactivated user ${user.email} in Mailcow, not found in Active Directory`);
         await editMailcowUser(user.email, { active: 0 });
       }
     } catch (error) {
-      console.log(`Ran into an issue when checking inactivity of ${user.email}. \n\n ${error}`);
+      if (!(error instanceof Error)) continue;
+      console.error(`Ran into an issue when checking inactivity of ${user.email}. \n\n ${error}`);
     }
   }
-  console.log('Successfully synced all users with Active Directory. \n\n');
+  console.info('Successfully synced all users with Active Directory. \n\n');
 }
 
 /**
@@ -449,36 +455,38 @@ async function synchronizePermissionsWithActiveDirectory(): Promise<void> {
       if (activeDirectoryUser[ActiveDirectoryPermissions.mailPermSOB].length != 0)
         await synchronizeUserSOB(activeDirectoryUser);
     } catch (error) {
-      console.log(`Ran into an issue when syncing permissions of ${activeDirectoryUser.mail}. \n\n ${error}`);
+      if (!(error instanceof Error)) continue;
+      console.error(`Ran into an issue when syncing permissions of ${activeDirectoryUser.mail}. \n\n ${error}`);
     }
   }
 
   for (const activeDirectoryUser of await getUpdateSOBLocalUsers()) {
     try {
-      console.log(`Changing SOB of ${activeDirectoryUser.email}`);
+      console.info(`Changing SOB of ${activeDirectoryUser.email}`);
       const SOBs: string[] = activeDirectoryUser.mailPermSOB.split(';');
       await editMailcowUser(activeDirectoryUser.email, { sender_acl: SOBs });
       // await editUserSignatures(activeDirectoryUser, SOBs);
     } catch (error) {
-      console.log(`Ran into an issue when syncing send on behalf of ${activeDirectoryUser.email}. \n\n ${error}`);
+      if (!(error instanceof Error)) continue;
+      console.error(`Ran into an issue when syncing send on behalf of ${activeDirectoryUser.email}. \n\n ${error}`);
     }
   }
 
-  console.log('Successfully synced all permissions with Active Directory. \n\n');
+  console.info('Successfully synced all permissions with Active Directory. \n\n');
 }
 
 /**
  * Read all files, initialize all (database) connections
  */
 async function initializeSync(): Promise<void> {
-  console.log(consoleLogLine + '\n READING ENVIRONMENT VARIABLES  \n' + consoleLogLine);
+  console.info(consoleLogLine + '\n READING ENVIRONMENT VARIABLES  \n' + consoleLogLine);
   createConfigFromEnvironment();
 
-  console.log(consoleLogLine + '\n SETTING UP CONNECTION WITH ACTIVE DIRECTORY\n' + consoleLogLine);
+  console.info(consoleLogLine + '\n SETTING UP CONNECTION WITH ACTIVE DIRECTORY\n' + consoleLogLine);
   activeDirectoryConnector = new Client({
     url: containerConfig.LDAP_URI,
   });
-  console.log('Successfully connected with active directory. \n\n');
+  console.info('Successfully connected with active directory. \n\n');
 
   await activeDirectoryConnector
     .bind(containerConfig.LDAP_BIND_DN, containerConfig.LDAP_BIND_DN_PASSWORD)
@@ -486,7 +494,7 @@ async function initializeSync(): Promise<void> {
       throw new Error('Ran into an issue when connecting to Active Directory. \n\n' + error);
     });
 
-  console.log(consoleLogLine + '\n ADJUSTING TEMPLATE FILES \n' + consoleLogLine);
+  console.info(consoleLogLine + '\n ADJUSTING TEMPLATE FILES \n' + consoleLogLine);
   const passDBConfig: string = await readPassDBConfig().catch((error) => {
     throw new Error('Ran into an issue when reading passdb.conf. \n\n' + error);
   });
@@ -498,30 +506,30 @@ async function initializeSync(): Promise<void> {
   const extraConfig: string = await readDovecotExtraConfig().catch((error) => {
     throw new Error('Ran into an issue when reading extra.conf. \n\n' + error);
   });
-  console.log('Successfully adjusted all template files. \n\n');
+  console.info('Successfully adjusted all template files. \n\n');
 
-  console.log(consoleLogLine + '\n APPLYING CONFIG FILES \n' + consoleLogLine);
+  console.info(consoleLogLine + '\n APPLYING CONFIG FILES \n' + consoleLogLine);
   const passDBConfigChanged: boolean = applyConfig('./conf/dovecot/ldap/passdb.conf', passDBConfig);
   const extraConfigChanged: boolean = applyConfig('./conf/dovecot/extra.conf', extraConfig);
   const pListLDAPChanged: boolean = applyConfig('./conf/sogo/plist_ldap', pListLDAP);
   if (passDBConfigChanged || extraConfigChanged || pListLDAPChanged)
     console.warn('One or more config files have been changed, please restart dovecot-mailcow and sogo-mailcow.');
-  console.log('Successfully applied all config files \n\n');
+  console.info('Successfully applied all config files \n\n');
 
-  console.log(consoleLogLine + '\n INITIALIZING DATABASES AND API CLIENTS \n' + consoleLogLine);
-  await initializeLocalUserDatabase();
+  console.info(consoleLogLine + '\n INITIALIZING DATABASES AND API CLIENTS \n' + consoleLogLine);
+  initializeLocalUserDatabase();
   await initializeMailcowDatabase();
-  await initializeMailcowAPI();
-  await initializeDovecotAPI();
-  console.log('Successfully initialized all databases and API clients \n\n');
+  initializeMailcowAPI();
+  initializeDovecotAPI();
+  console.info('Successfully initialized all databases and API clients \n\n');
 
-  console.log(consoleLogLine + '\nGETTING USERS FROM ACTIVE DIRECTORY\n' + consoleLogLine);
+  console.info(consoleLogLine + '\nGETTING USERS FROM ACTIVE DIRECTORY\n' + consoleLogLine);
   await getUserDataFromActiveDirectory();
 
-  console.log(consoleLogLine + '\n SYNCING ALL USERS \n' + consoleLogLine);
+  console.info(consoleLogLine + '\n SYNCING ALL USERS \n' + consoleLogLine);
   await synchronizeUsersWithActiveDirectory();
 
-  console.log(consoleLogLine + '\n SYNCING ALL PERMISSIONS \n' + consoleLogLine);
+  console.info(consoleLogLine + '\n SYNCING ALL PERMISSIONS \n' + consoleLogLine);
   // Get the alias dictionary if it does not yes exist, or if it is older than one hour
   if (aliasDictionary === null || (Date.now() - aliasDictionary.last_update_time.getTime()) / 3600000 > 1) {
     aliasDictionary = await getAliasDictionary();
@@ -532,4 +540,4 @@ async function initializeSync(): Promise<void> {
 /**
  * Start sync
  */
-void initializeSync().then(() => console.log('Finished!'));
+void initializeSync().then(() => console.info('Finished!'));
