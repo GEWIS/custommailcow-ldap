@@ -13,7 +13,7 @@ COPY tsconfig.json .
 COPY .yarnrc.yml /usr/src/app
 
 # Copy over the source files
-COPY src /usr/src/custommailcow-ldap/src
+COPY src/ ./src/
 
 # Install dependencies
 RUN corepack enable && \
@@ -32,6 +32,7 @@ WORKDIR /app
 # Copy over the package and package-lock
 COPY package.json .
 COPY yarn.lock .
+COPY .yarnrc.yml .
 
 # Install production dependencies
 RUN corepack enable && \
@@ -42,7 +43,7 @@ RUN corepack enable && \
 COPY templates /app/templates
 
 # Copy over the source files from the builder
-COPY --from=builder /usr/src/custommailcow-ldap/dist /app/src
+COPY --from=builder /usr/src/custommailcow-ldap/dist/src/ /app/src/
 
 # Set correct priv.
 USER root
