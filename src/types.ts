@@ -30,6 +30,7 @@ export interface MailcowUserData {
 }
 
 export interface ActiveDirectoryUser {
+  dn: string;
   mail: string;
   displayName: string;
   userAccountControl: number;
@@ -39,6 +40,7 @@ export interface ActiveDirectoryUser {
   mailPermROSent: string;
   mailPermSOB: string;
   memberFlattened: string[];
+  memberOfFlattened: string[];
 }
 
 export enum ActiveDirectoryPermissions {

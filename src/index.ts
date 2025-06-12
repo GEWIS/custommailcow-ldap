@@ -2,6 +2,7 @@
 import path from 'path';
 import { Client } from 'ldapts';
 import { replaceInFile } from 'replace-in-file';
+import { BaseBccMap } from 'ts-mailcow-api/dist/types';
 import {
   updateLocalUserActivity,
   createLocalUser,
@@ -13,7 +14,7 @@ import {
   updateLocalUserPermissions,
   editLocalUserDisplayName,
 } from './localUserDatabase';
-import { createMailcowUser, getMailcowUser, editMailcowUser, initializeMailcowAPI } from './mailcowAPI';
+import { createMailcowUser, getMailcowUser, editMailcowUser, initializeMailcowAPI, getAllBccMaps, addBccMap } from './mailcowAPI';
 import {
   ChangedUsers,
   ActiveUserSetting,
@@ -50,6 +51,7 @@ const consoleLogLine: string = '-'.repeat(40);
 let activeDirectoryConnector: Client;
 let activeDirectoryUsers: ActiveDirectoryUser[] = [];
 let aliasDictionary: AliasDictionary | null = null;
+let BccMaps: BaseBccMap[] | null = null;
 
 /**
  * Search active directory users on mail and return display name
@@ -144,7 +146,6 @@ async function synchronizeUserSOB(activeDirectoryGroup: ActiveDirectoryUser): Pr
       attributes: ['memberFlattened'],
     })
   ).searchEntries as unknown as ActiveDirectoryUser[];
-  console.error('SOB', activeDirectoryPermissionGroup);
 
   // Construct list in database with DN of all committees they are in
   // Get existing list of committees, add new DN as string
@@ -167,20 +168,51 @@ async function synchronizeUserSOB(activeDirectoryGroup: ActiveDirectoryUser): Pr
       ]);
     }
   }
+}
 
-  // Singular entries are possible, so turn them into an array
-  // if (!Array.isArray(activeDirectoryPermissionGroup.memberFlattened))
-  //   activeDirectoryPermissionGroup.memberFlattened = [activeDirectoryPermissionGroup.memberFlattened];
-  //
-  // // All users are given as DN, so we have to get their mail first
-  // for (const activeDirectoryUserDN of activeDirectoryPermissionGroup.memberFlattened) {
-  //   const activeDirectoryUserMail: ActiveDirectoryUser = ((await activeDirectoryConnector.search(activeDirectoryUserDN, {
-  //     scope: 'sub',
-  //     attributes: ['mail'],
-  //   })).searchEntries)[0] as unknown as ActiveDirectoryUser;
-  //   // Own group has to be skipped to prevent clashing permissions
-  //   await editLocalUserPermissions(activeDirectoryUserMail.mail, activeDirectoryGroup.mail);
-  // }
+
+/**
+ * Synchronize the BCC maps of a user and its aliases with Active Directory
+ * @param activeDirectoryGroup - group to sync with Active Directory
+ */
+async function synchronizeBCCMap(activeDirectoryGroup: ActiveDirectoryUser): Promise<void> {
+  for (const group of Array.from(activeDirectoryGroup.memberOfFlattened)) {
+    if (!group.includes("MAIL-BCC-self")) {
+      continue
+    }
+    const bccMap: BaseBccMap = {
+      active: 1,
+      bcc_dest: activeDirectoryGroup.mail,
+      local_dest: activeDirectoryGroup.mail,
+      type: 'sender'
+    }
+    const bccMapEquals = (a: BaseBccMap, b: BaseBccMap): boolean => {
+      return a.active === b.active &&
+        a.bcc_dest === b.bcc_dest &&
+        a.local_dest === b.local_dest &&
+        a.type === b.type;
+    }
+
+    if (BccMaps != null && BccMaps.some(map => bccMapEquals(map, bccMap))) {
+      // already exists
+      return
+    }
+    await addBccMap(bccMap)
+    if (!aliasDictionary) continue;
+    for (const alias of aliasDictionary.emails[activeDirectoryGroup.mail].aliases) {
+      const bccMap: BaseBccMap = {
+        active: 1,
+        bcc_dest: alias,
+        local_dest: alias,
+        type: 'sender'
+      }
+      if (BccMaps != null && BccMaps.some(map => bccMapEquals(map, bccMap))) {
+        // already exists
+        return
+      }
+      await addBccMap(bccMap)
+    }
+  }
 }
 
 /**
@@ -338,13 +370,12 @@ async function getUserDataFromActiveDirectory(): Promise<void> {
           'mailPermROInbox',
           'mailPermROSent',
           'mailPermSOB',
+          'memberOfFlattened'
         ],
       })
     ).searchEntries as unknown as ActiveDirectoryUser[];
   }
-  console.info(retryCount, maxRetryCount);
   if (retryCount === maxRetryCount) throw new Error('Ran into an issue when getting users from Active Directory.');
-  console.error(activeDirectoryUsers);
   console.info('Successfully got all users from Active Directory. \n\n');
 }
 
@@ -454,6 +485,7 @@ async function synchronizePermissionsWithActiveDirectory(): Promise<void> {
         await synchronizeUserACL(activeDirectoryUser, ActiveDirectoryPermissions.mailPermRW);
       if (activeDirectoryUser[ActiveDirectoryPermissions.mailPermSOB].length != 0)
         await synchronizeUserSOB(activeDirectoryUser);
+      if (activeDirectoryUser.memberOfFlattened !== undefined) await synchronizeBCCMap(activeDirectoryUser);
     } catch (error) {
       if (!(error instanceof Error)) continue;
       console.error(`Ran into an issue when syncing permissions of ${activeDirectoryUser.mail}. \n\n ${error}`);
@@ -462,7 +494,6 @@ async function synchronizePermissionsWithActiveDirectory(): Promise<void> {
 
   for (const activeDirectoryUser of await getUpdateSOBLocalUsers()) {
     try {
-      console.info(`Changing SOB of ${activeDirectoryUser.email}`);
       const SOBs: string[] = activeDirectoryUser.mailPermSOB.split(';');
       await editMailcowUser(activeDirectoryUser.email, { sender_acl: SOBs });
       // await editUserSignatures(activeDirectoryUser, SOBs);
@@ -534,6 +565,12 @@ async function initializeSync(): Promise<void> {
   if (aliasDictionary === null || (Date.now() - aliasDictionary.last_update_time.getTime()) / 3600000 > 1) {
     aliasDictionary = await getAliasDictionary();
   }
+  BccMaps = (await getAllBccMaps()).map(item => ({
+    active: item.active,
+    bcc_dest: item.bcc_dest,
+    local_dest: item.local_dest,
+    type: item.type
+  } as BaseBccMap))
   await synchronizePermissionsWithActiveDirectory();
 }
 
