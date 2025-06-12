@@ -1,44 +1,44 @@
 export interface ContainerConfig {
-  LDAP_URI: string,
-  LDAP_BIND_DN: string,
-  LDAP_BIND_DN_PASSWORD: string,
-  LDAP_BASE_DN: string,
-  LDAP_FILTER: string,
-  SOGO_LDAP_FILTER: string,
-  LDAP_GC_URI: string,
-  LDAP_DOMAIN: string,
-  API_HOST: string,
-  API_KEY: string,
-  MAX_INACTIVE_COUNT: string,
-  MAX_LDAP_RETRY_COUNT: string,
-  DB_PASSWORD: string,
-  DOVEADM_API_KEY: string,
-  DOVEADM_API_HOST: string
+  LDAP_URI: string;
+  LDAP_BIND_DN: string;
+  LDAP_BIND_DN_PASSWORD: string;
+  LDAP_BASE_DN: string;
+  LDAP_FILTER: string;
+  SOGO_LDAP_FILTER: string;
+  LDAP_GC_URI: string;
+  LDAP_DOMAIN: string;
+  API_HOST: string;
+  API_KEY: string;
+  MAX_INACTIVE_COUNT: string;
+  MAX_LDAP_RETRY_COUNT: string;
+  DB_PASSWORD: string;
+  DOVEADM_API_KEY: string;
+  DOVEADM_API_HOST: string;
 }
 
 export interface LocalUserData {
-  exists: boolean
-  displayName: string,
-  isActive: ActiveUserSetting
-  inactiveCount: number
+  exists: boolean;
+  displayName: string;
+  isActive: ActiveUserSetting;
+  inactiveCount: number;
 }
 
 export interface MailcowUserData {
-  exists: boolean,
-  isActive: number,
-  displayName?: string,
+  exists: boolean;
+  isActive: number;
+  displayName?: string;
 }
 
 export interface ActiveDirectoryUser {
-  mail: string
-  displayName: string
-  userAccountControl: number
-  mailPermRO: string
-  mailPermRW: string
-  mailPermROInbox: string
-  mailPermROSent: string
-  mailPermSOB: string
-  memberFlattened: string[]
+  mail: string;
+  displayName: string;
+  userAccountControl: number;
+  mailPermRO: string;
+  mailPermRW: string;
+  mailPermROInbox: string;
+  mailPermROSent: string;
+  mailPermSOB: string;
+  memberFlattened: string[];
 }
 
 export enum ActiveDirectoryPermissions {
@@ -59,10 +59,10 @@ export interface ChangedUsers {
 export type DovecotRequestData = [string, DovecotData, string];
 
 export interface DovecotData {
-  mailbox: string
-  user: string
-  id: string
-  right?: DovecotPermissions[]
+  mailbox: string;
+  user: string;
+  id: string;
+  right?: DovecotPermissions[];
 }
 
 export enum DovecotPermissions {
@@ -80,7 +80,7 @@ export enum DovecotPermissions {
 }
 
 export interface Forward {
-  forwardAddress: any[];
+  forwardAddress: unknown[];
 }
 
 export interface SOGoCalendarCategoriesColors {
@@ -120,7 +120,7 @@ export interface SOGoMailIdentity {
 export interface Vacation {
   daysBetweenResponse: number;
   autoReplyEmailAddresses: string[];
-  days: any[];
+  days: unknown[];
 }
 
 export interface Defaults {
@@ -171,7 +171,7 @@ export interface Defaults {
   SOGoAnimationMode: string;
   SOGoPasswordRecoveryQuestion: string;
   SOGoMailAddOutgoingAddresses: number;
-  AuxiliaryMailAccounts: any[];
+  AuxiliaryMailAccounts: unknown[];
   SOGoFirstDayOfWeek: number;
   SOGoLanguage: string;
   SOGoContactsCategories: string[];

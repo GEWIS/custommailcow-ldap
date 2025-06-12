@@ -1,19 +1,12 @@
-import {
-  DataSource,
-  Repository,
-} from 'typeorm';
-import {
-  Defaults,
-  SOGoMailIdentity,
-} from './types';
+import { DataSource, Repository } from 'typeorm';
+import axios from 'axios';
+import { Defaults, SOGoMailIdentity } from './types';
 import { SogoUserProfile } from './entities/SogoUserProfile';
 import { Users } from './entities/User';
-import { getActiveDirectoryDisplayName } from './index';
-import axios from 'axios';
-import { containerConfig } from './index';
+import { getActiveDirectoryDisplayName, containerConfig } from './index';
 
 // Connection options for the DB
-let dataSource : DataSource;
+let dataSource: DataSource;
 let SogoUserProfileRepository: Repository<SogoUserProfile>;
 
 /**
@@ -27,15 +20,12 @@ export async function initializeMailcowDatabase(): Promise<void> {
     username: 'mailcow',
     password: containerConfig.DB_PASSWORD,
     database: 'mailcow',
-    entities: [
-      SogoUserProfile,
-    ],
+    entities: [SogoUserProfile],
   });
 
-  await dataSource.initialize()
-    .catch((error) => {
-      console.log(error);
-    });
+  await dataSource.initialize().catch((error) => {
+    console.error(error);
+  });
 
   SogoUserProfileRepository = dataSource.getRepository(SogoUserProfile);
 }
@@ -46,16 +36,16 @@ export async function initializeMailcowDatabase(): Promise<void> {
  * @param SOBs - all SOB for which the user should get signatures
  */
 export async function editUserSignatures(user: Users, SOBs: string[]): Promise<void> {
-  console.log(`Changing signatures for ${user.email}`);
+  console.info(`Changing signatures for ${user.email}`);
 
-  let userProfile: SogoUserProfile = await SogoUserProfileRepository.findOneOrFail({
+  const userProfile: SogoUserProfile = await SogoUserProfileRepository.findOneOrFail({
     where: {
       c_uid: user.email,
     },
   });
 
-  let defaultSettings: Defaults = JSON.parse(userProfile.c_defaults);
-  let newIdentities: SOGoMailIdentity[] = [];
+  const defaultSettings = JSON.parse(userProfile.c_defaults) as Defaults;
+  const newIdentities: SOGoMailIdentity[] = [];
 
   // console.log(defaultSettings.SOGoMailIdentities);
   // for (let identity of defaultSettings.SOGoMailIdentities) {
@@ -64,16 +54,16 @@ export async function editUserSignatures(user: Users, SOBs: string[]): Promise<v
   //   }
   // }
 
-  for (let identityMail of SOBs) {
+  for (const identityMail of SOBs) {
     const committeeDisplayName: string = await getActiveDirectoryDisplayName(identityMail);
-    let signature: string = (await axios.get(`https://signature.gewis.nl/${identityMail}`)).data;
+    let signature: string = (await axios.get<string>(`https://signature.gewis.nl/${identityMail}`)).data;
     signature = signature.replace('{{displayName}}', user.displayName);
     signature = signature.replaceAll('{{committeeDisplayName}}', committeeDisplayName);
     signature = signature.replaceAll('{{identityMail}}', identityMail);
 
     signature.replaceAll('', '');
 
-    let newIdentity : SOGoMailIdentity = {
+    const newIdentity: SOGoMailIdentity = {
       email: identityMail,
       fullName: `${user.displayName} | ${committeeDisplayName}`,
       replyTo: user.email,
