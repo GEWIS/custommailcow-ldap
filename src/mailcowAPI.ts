@@ -1,7 +1,6 @@
 ﻿import * as https from 'https';
 import MailCowClient from 'ts-mailcow-api';
-import { ACLEditRequest, Alias, MailboxEditRequest, MailboxPostRequest } from 'ts-mailcow-api/src/types';
-import { Mailbox, MailboxEditAttributes } from 'ts-mailcow-api/dist/types';
+import type { ACLEditRequest, Alias, MailboxEditRequest, MailboxPostRequest, Mailbox, MailboxEditAttributes }  from 'ts-mailcow-api';
 import { MailcowUserData } from './types';
 import { containerConfig } from './index';
 
