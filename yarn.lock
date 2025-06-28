@@ -1103,7 +1103,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:^1.6.2, axios@npm:^1.6.3":
+"axios@npm:^1.6.2":
   version: 1.7.7
   resolution: "axios@npm:1.7.7"
   dependencies:
@@ -1111,6 +1111,17 @@ __metadata:
     form-data: "npm:^4.0.0"
     proxy-from-env: "npm:^1.1.0"
   checksum: 10c0/4499efc89e86b0b49ffddc018798de05fab26e3bf57913818266be73279a6418c3ce8f9e934c7d2d707ab8c095e837fc6c90608fb7715b94d357720b5f568af7
+  languageName: node
+  linkType: hard
+
+"axios@npm:^1.9.0":
+  version: 1.10.0
+  resolution: "axios@npm:1.10.0"
+  dependencies:
+    follow-redirects: "npm:^1.15.6"
+    form-data: "npm:^4.0.0"
+    proxy-from-env: "npm:^1.1.0"
+  checksum: 10c0/2239cb269cc789eac22f5d1aabd58e1a83f8f364c92c2caa97b6f5cbb4ab2903d2e557d9dc670b5813e9bcdebfb149e783fb8ab3e45098635cd2f559b06bd5d8
   languageName: node
   linkType: hard
 
@@ -1568,7 +1579,7 @@ __metadata:
     prettier: "npm:^3.5.3"
     replace-in-file: "npm:^7.0.2"
     sqlite3: "npm:^5.1.6"
-    ts-mailcow-api: "npm:^0.8.4"
+    ts-mailcow-api: "npm:^1.0.0"
     tslint: "npm:^6.1.3"
     typeorm: "npm:^0.3.20"
     typescript: "npm:^5.3.2"
@@ -5094,12 +5105,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ts-mailcow-api@npm:^0.8.4":
-  version: 0.8.5
-  resolution: "ts-mailcow-api@npm:0.8.5"
+"ts-mailcow-api@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "ts-mailcow-api@npm:1.0.0"
   dependencies:
-    axios: "npm:^1.6.3"
-  checksum: 10c0/a31b7633998ff13d6e11b9a164e1095855fd2c2b48290f48c871fae663f7b2fbe5c1b27529582f0eec93beaf2eab832ab2a712d212e37ff3f3a6eb9341dab44b
+    axios: "npm:^1.9.0"
+  checksum: 10c0/145437e376675e04a3dadd19b215b1fb0c49ac70945edd083725d06adb39390617f423496a51629ebfeea9bbb3575d9021adb2f090b773a4f26fa0364937073d
   languageName: node
   linkType: hard
 
