@@ -1,6 +1,6 @@
 ﻿import * as https from 'https';
 import MailCowClient from 'ts-mailcow-api';
-import type { ACLEditRequest, Alias, MailboxEditRequest, MailboxPostRequest, Mailbox, MailboxEditAttributes }  from 'ts-mailcow-api';
+import type { ACLEditRequest, Alias, MailboxEditRequest, MailboxPostRequest, Mailbox, MailboxEditAttributes, GetBccMapResponse, BaseBccMap }  from 'ts-mailcow-api';
 import { MailcowUserData } from './types';
 import { containerConfig } from './index';
 
@@ -109,6 +109,20 @@ export async function getMailcowUser(mail: string): Promise<MailcowUserData> {
   return userData;
 }
 
+/**
+ * Get all aliasses currently registerd in mailcow
+ */
 export function getAllAliases(): Promise<Alias[]> {
   return mailcowClient.aliases.get('all');
+}
+
+/**
+ * Get all bcc Maps currently registerd in mailcow
+ */
+export function getAllBccMaps(): Promise<GetBccMapResponse> {
+  return mailcowClient.addressRewriting.getBccMap('all')
+}
+
+export function addBccMap(bccMap: BaseBccMap) {
+  return mailcowClient.addressRewriting.addBccMap(bccMap)
 }
