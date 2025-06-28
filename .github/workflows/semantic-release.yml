@@ -17,7 +17,7 @@ jobs:
       projects: "['.']"
       version: ${{ needs.versioning.outputs.next-version }}
       docker-registry: "cbc.docker-registry.gewis.nl"
-      docker-paths: "['cbc/custommailcow-ldap']"
+      docker-paths: "['custommailcow-ldap']"
       github-registry: "true"
     secrets:
       REGISTRY_USERNAME: ${{ secrets.SVC_GH_CBC_USERNAME }}
