@@ -14,7 +14,7 @@ export function initializeDovecotAPI(): void {
   dovecotClient = axios.create({
     baseURL: 'http://172.22.1.250:9000/doveadm/v1',
     headers: {
-      'Content-Type': 'text/plain',
+      'Content-Type': 'application/json',
       Authorization: `X-Dovecot-API ${Buffer.from(containerConfig.DOVEADM_API_KEY).toString('base64')}`,
     },
     httpAgent: new http.Agent({
@@ -28,12 +28,9 @@ export function initializeDovecotAPI(): void {
  * @param mail - email to get all subfolders from
  */
 async function getMailboxSubFolders(mail: string): Promise<string[]> {
-  const maildata = await dovecotClient.post<DovecotMailboxResponse>('', {
-    _mailboxList_: {
-      _user: mail,
-    },
-    [`_mailboxList_${mail}_`]: '', // Use computed property syntax with square brackets
-  });
+  const payload = [['mailbox-list', { user: mail }, 'get-subfolders']];
+
+  const maildata = await dovecotClient.post<DovecotMailboxResponse>('', payload);
 
   const subFolders: string[] = [];
   for (const subFolder of maildata.data[0][1]) {
@@ -127,8 +124,7 @@ export async function setDovecotPermissions(
   if (dovecotRequests.length > dovecotMaxRequestSize) {
     for (let requestsDone: number = 0; requestsDone < dovecotRequests.length; requestsDone += dovecotMaxRequestSize) {
       console.info(
-        'Sending Dovecot API request',
-        dovecotRequests.slice(requestsDone, requestsDone + dovecotMaxRequestSize),
+        'Sending Dovecot API request', requestsDone,'out of',dovecotRequests.length,
       );
       await dovecotClient.post('', dovecotRequests.slice(requestsDone, requestsDone + dovecotMaxRequestSize));
       await new Promise((resolve) => setTimeout(resolve, 10));

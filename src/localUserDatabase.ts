@@ -180,12 +180,12 @@ export async function getUpdateSOBLocalUsers(): Promise<Users[]> {
 }
 
 /**
- * Update local user permissions
+ * Get changes in local user permissions and the updated user
  * @param mail - email of user
  * @param newUsers - acl to check
  * @param permission - type of permission to change
  */
-export async function updateLocalUserPermissions(
+export async function getLocalUserPermissionsChanges(
   mail: string,
   newUsers: string[],
   permission: ActiveDirectoryPermissions,

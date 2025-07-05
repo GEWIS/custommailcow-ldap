@@ -12,7 +12,7 @@ import {
   getUpdateSOBLocalUsers,
   getUncheckedLocalActiveUsers,
   initializeLocalUserDatabase,
-  updateLocalUserPermissions,
+  getLocalUserPermissionsChanges,
   editLocalUserDisplayName,
   saveUser,
 } from './localUserDatabase';
@@ -119,17 +119,18 @@ async function synchronizeUserACL(
     })
   ).searchEntries[0] as unknown as ActiveDirectoryUser;
 
-  await updateLocalUserPermissions(
+  const [changedUsers, user]: [ChangedUsers, Users] = await getLocalUserPermissionsChanges(
     activeDirectoryUser.mail,
     activeDirectoryPermissionGroup.memberFlattened,
     permission,
-  ).then(async ([changedUsers, user]: [ChangedUsers, Users]) => {
+  );
+
+  try {
+
     if (changedUsers.newUsers.length != 0) {
       changedUsers.newUsers = await getActiveDirectoryMails(changedUsers.newUsers, activeDirectoryUser);
 
-      console.info(
-        `User(s) ${changedUsers.newUsers.toString()} added to ${activeDirectoryUser.mail} for ${permission}`,
-      );
+      console.info(`User(s) ${changedUsers.newUsers.toString()} added to ${activeDirectoryUser.mail} for ${permission}`);
       await setDovecotPermissions(activeDirectoryUser.mail, changedUsers.newUsers, permission, false);
     }
 
@@ -137,14 +138,16 @@ async function synchronizeUserACL(
       changedUsers.removedUsers = await getActiveDirectoryMails(changedUsers.removedUsers, activeDirectoryUser);
 
       console.info(
-        `Removing User(s) ${changedUsers.removedUsers.toString()} from ${activeDirectoryUser.mail} for ${permission}`,
+          `Removing User(s) ${changedUsers.removedUsers.toString()} from ${activeDirectoryUser.mail} for ${permission}`,
       );
       await setDovecotPermissions(activeDirectoryUser.mail, changedUsers.removedUsers, permission, true);
     }
 
     // Only update the local user if everything went well
     await saveUser(user);
-  });
+  } catch (error) {
+    throw new Error(`Ran into an issue when syncing permission ${permission} of ${activeDirectoryUser.mail}.\n\n ${error as string}`);
+  }
 }
 
 /**
