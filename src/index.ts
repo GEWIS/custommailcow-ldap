@@ -3,6 +3,7 @@ import path from 'path';
 import { Client } from 'ldapts';
 import { replaceInFile } from 'replace-in-file';
 import { BaseBccMap } from 'ts-mailcow-api/dist/types';
+import { AxiosError } from 'axios';
 import {
   updateLocalUserActivity,
   createLocalUser,
@@ -13,8 +14,16 @@ import {
   initializeLocalUserDatabase,
   updateLocalUserPermissions,
   editLocalUserDisplayName,
+  saveUser,
 } from './localUserDatabase';
-import { createMailcowUser, getMailcowUser, editMailcowUser, initializeMailcowAPI, getAllBccMaps, addBccMap } from './mailcowAPI';
+import {
+  createMailcowUser,
+  getMailcowUser,
+  editMailcowUser,
+  initializeMailcowAPI,
+  getAllBccMaps,
+  addBccMap,
+} from './mailcowAPI';
 import {
   ChangedUsers,
   ActiveUserSetting,
@@ -27,6 +36,7 @@ import {
 import { initializeDovecotAPI, setDovecotPermissions } from './dovecotAPI';
 import { initializeMailcowDatabase } from './mailcowDatabase';
 import { AliasDictionary, getAliasDictionary } from './aliasSync';
+import { Users } from './entities/User';
 
 export const containerConfig: ContainerConfig = {
   LDAP_URI: '',
@@ -113,7 +123,7 @@ async function synchronizeUserACL(
     activeDirectoryUser.mail,
     activeDirectoryPermissionGroup.memberFlattened,
     permission,
-  ).then(async (changedUsers: ChangedUsers) => {
+  ).then(async ([changedUsers, user]: [ChangedUsers, Users]) => {
     if (changedUsers.newUsers.length != 0) {
       changedUsers.newUsers = await getActiveDirectoryMails(changedUsers.newUsers, activeDirectoryUser);
 
@@ -127,10 +137,13 @@ async function synchronizeUserACL(
       changedUsers.removedUsers = await getActiveDirectoryMails(changedUsers.removedUsers, activeDirectoryUser);
 
       console.info(
-        `User(s) ${changedUsers.removedUsers.toString()} removed from ${activeDirectoryUser.mail} for ${permission}`,
+        `Removing User(s) ${changedUsers.removedUsers.toString()} from ${activeDirectoryUser.mail} for ${permission}`,
       );
       await setDovecotPermissions(activeDirectoryUser.mail, changedUsers.removedUsers, permission, true);
     }
+
+    // Only update the local user if everything went well
+    await saveUser(user);
   });
 }
 
@@ -170,47 +183,43 @@ async function synchronizeUserSOB(activeDirectoryGroup: ActiveDirectoryUser): Pr
   }
 }
 
-
 /**
  * Synchronize the BCC maps of a user and its aliases with Active Directory
  * @param activeDirectoryGroup - group to sync with Active Directory
  */
 async function synchronizeBCCMap(activeDirectoryGroup: ActiveDirectoryUser): Promise<void> {
   for (const group of Array.from(activeDirectoryGroup.memberOfFlattened)) {
-    if (!group.includes("MAIL-BCC-self")) {
-      continue
+    if (!group.includes('MAIL-BCC-self')) {
+      continue;
     }
     const bccMap: BaseBccMap = {
       active: 1,
       bcc_dest: activeDirectoryGroup.mail,
       local_dest: activeDirectoryGroup.mail,
-      type: 'sender'
-    }
+      type: 'sender',
+    };
     const bccMapEquals = (a: BaseBccMap, b: BaseBccMap): boolean => {
-      return a.active === b.active &&
-        a.bcc_dest === b.bcc_dest &&
-        a.local_dest === b.local_dest &&
-        a.type === b.type;
-    }
+      return a.active === b.active && a.bcc_dest === b.bcc_dest && a.local_dest === b.local_dest && a.type === b.type;
+    };
 
-    if (BccMaps != null && BccMaps.some(map => bccMapEquals(map, bccMap))) {
+    if (BccMaps != null && BccMaps.some((map) => bccMapEquals(map, bccMap))) {
       // already exists
-      return
+      return;
     }
-    await addBccMap(bccMap)
+    await addBccMap(bccMap);
     if (!aliasDictionary) continue;
     for (const alias of aliasDictionary.emails[activeDirectoryGroup.mail].aliases) {
       const bccMap: BaseBccMap = {
         active: 1,
         bcc_dest: alias,
         local_dest: alias,
-        type: 'sender'
-      }
-      if (BccMaps != null && BccMaps.some(map => bccMapEquals(map, bccMap))) {
+        type: 'sender',
+      };
+      if (BccMaps != null && BccMaps.some((map) => bccMapEquals(map, bccMap))) {
         // already exists
-        return
+        return;
       }
-      await addBccMap(bccMap)
+      await addBccMap(bccMap);
     }
   }
 }
@@ -370,7 +379,7 @@ async function getUserDataFromActiveDirectory(): Promise<void> {
           'mailPermROInbox',
           'mailPermROSent',
           'mailPermSOB',
-          'memberOfFlattened'
+          'memberOfFlattened',
         ],
       })
     ).searchEntries as unknown as ActiveDirectoryUser[];
@@ -431,8 +440,7 @@ async function synchronizeUsersWithActiveDirectory(): Promise<void> {
         await editLocalUserDisplayName(mail, displayName);
       }
     } catch (error) {
-      if (!(error instanceof Error)) continue;
-      console.error(`Ran into an issue when syncing user ${activeDirectoryUser.mail}. \n\n ${error}`);
+      console.error(`Ran into an issue when syncing user ${activeDirectoryUser.mail}. \n\n ${error as string}`);
     }
   }
 
@@ -487,8 +495,11 @@ async function synchronizePermissionsWithActiveDirectory(): Promise<void> {
         await synchronizeUserSOB(activeDirectoryUser);
       if (activeDirectoryUser.memberOfFlattened !== undefined) await synchronizeBCCMap(activeDirectoryUser);
     } catch (error) {
-      if (!(error instanceof Error)) continue;
-      console.error(`Ran into an issue when syncing permissions of ${activeDirectoryUser.mail}. \n\n ${error}`);
+      const data = (error as AxiosError).response?.data;
+      // if (!(error instanceof Error)) continue;
+      console.error(
+        `Ran into an issue when syncing permissions of ${activeDirectoryUser.mail}. \n\n ${error as string}\n${JSON.stringify(data)}`,
+      );
     }
   }
 
@@ -565,12 +576,15 @@ async function initializeSync(): Promise<void> {
   if (aliasDictionary === null || (Date.now() - aliasDictionary.last_update_time.getTime()) / 3600000 > 1) {
     aliasDictionary = await getAliasDictionary();
   }
-  BccMaps = (await getAllBccMaps()).map(item => ({
-    active: item.active,
-    bcc_dest: item.bcc_dest,
-    local_dest: item.local_dest,
-    type: item.type
-  } as BaseBccMap))
+  BccMaps = (await getAllBccMaps()).map(
+    (item) =>
+      ({
+        active: item.active,
+        bcc_dest: item.bcc_dest,
+        local_dest: item.local_dest,
+        type: item.type,
+      }) as BaseBccMap,
+  );
   await synchronizePermissionsWithActiveDirectory();
 }
 

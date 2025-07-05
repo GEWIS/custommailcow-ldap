@@ -33,7 +33,7 @@
     "mysql": "^2.18.1",
     "replace-in-file": "^7.0.2",
     "sqlite3": "^5.1.6",
-    "ts-mailcow-api": "^1.0.0",
+    "ts-mailcow-api": "^1.1.0",
     "typeorm": "^0.3.20"
   },
   "packageManager": "yarn@4.5.1"

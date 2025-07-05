@@ -189,7 +189,7 @@ export async function updateLocalUserPermissions(
   mail: string,
   newUsers: string[],
   permission: ActiveDirectoryPermissions,
-): Promise<ChangedUsers> {
+): Promise<[ChangedUsers, Users]> {
   const changedUsers: ChangedUsers = {
     newUsers: [],
     removedUsers: [],
@@ -212,7 +212,10 @@ export async function updateLocalUserPermissions(
     (innerUser: string) => !newUsers.includes(innerUser) && innerUser != '',
   );
   user[permission] = newUsers.join(';');
-  await localUserRepository.update(user.email, user);
 
-  return changedUsers;
+  return [changedUsers, user];
+}
+
+export async function saveUser(user: Users): Promise<void> {
+  await localUserRepository.update(user.email, user);
 }

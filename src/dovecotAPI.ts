@@ -75,6 +75,7 @@ export async function setDovecotPermissions(
   }
 
   if (permission == ActiveDirectoryPermissions.mailPermRO || ActiveDirectoryPermissions.mailPermRW) {
+    console.info('Getting mailbox subfolders for', mail);
     mailboxSubFolders = await getMailboxSubFolders(mail);
     permissionTag = 'PermRO';
   }
@@ -125,10 +126,15 @@ export async function setDovecotPermissions(
   const dovecotMaxRequestSize: number = 10;
   if (dovecotRequests.length > dovecotMaxRequestSize) {
     for (let requestsDone: number = 0; requestsDone < dovecotRequests.length; requestsDone += dovecotMaxRequestSize) {
+      console.info(
+        'Sending Dovecot API request',
+        dovecotRequests.slice(requestsDone, requestsDone + dovecotMaxRequestSize),
+      );
       await dovecotClient.post('', dovecotRequests.slice(requestsDone, requestsDone + dovecotMaxRequestSize));
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
   } else {
+    console.info('Sending Dovecot API request', dovecotRequests);
     await dovecotClient.post('', dovecotRequests);
   }
 }
