@@ -53,6 +53,7 @@ export async function createMailcowUser(mail: string, name: string, active: numb
     // Active: 0 = no incoming mail/no login, 1 = allow both, 2 = custom state: allow incoming mail/no login
     active: active,
     force_pw_update: false,
+    auth: "keycloak",
     local_part: mail.split('@')[0],
     domain: mail.split('@')[1],
     name: name,
