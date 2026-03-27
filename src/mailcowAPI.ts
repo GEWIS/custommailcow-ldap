@@ -76,6 +76,7 @@ export async function createMailcowUser(mail: string, name: string, active: numb
         'delimiter_action',
         'quarantine',
         'quarantine_notification',
+        'app_passwds'
       ],
     },
   };
